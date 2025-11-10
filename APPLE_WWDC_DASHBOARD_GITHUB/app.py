@@ -58,9 +58,16 @@ os.makedirs(MODEL_PACKAGE_PATH, exist_ok=True)
 
 if not VECT_PATH.exists():
     url = f"https://drive.google.com/uc?id={VECTOR_FILE_ID}"
-    st.info("Downloading large vectorizer from Google Drive... This may take a minute.")
-    gdown.download(url, str(VECT_PATH), quiet=False)
-
+    st.info("Downloading large vectorizer from Google Drive (370MB)... This may take a minute.")
+    try:
+        gdown.download(url, str(VECT_PATH), quiet=False)
+        st.success("Vectorizer download completed!")
+    except Exception as e:
+        st.error(f"Failed to download vectorizer: {e}")
+        st.stop()
+else:
+    st.write("DEBUG: Vectorizer already exists, skipping download")
+    
 # -------------------------------
 # CSS STYLING
 # -------------------------------
@@ -177,6 +184,13 @@ if not st.session_state.lottie_assets:
 # -------------------------------
 if not st.session_state.model_loaded:
     try:
+        # Wait for vectorizer download to complete
+        if not VECT_PATH.exists():
+            with st.spinner("Waiting for vectorizer download to complete..."):
+                while not VECT_PATH.exists():
+                    time.sleep(1)  # Wait 1 second and check again
+                st.write("DEBUG: Vectorizer download completed!")
+
         with st.spinner("Loading model and vectorizer..."):
             st.write("DEBUG: Starting model loading process...")
             
@@ -186,6 +200,19 @@ if not st.session_state.model_loaded:
                 st.stop()
             if not VECT_PATH.exists():
                 st.error(f"DEBUG: Vectorizer file missing at: {VECT_PATH}")
+                st.stop()
+            
+            # Verify file sizes are reasonable
+            model_size = MODEL_PATH.stat().st_size
+            vect_size = VECT_PATH.stat().st_size
+            st.write(f"DEBUG: Model size: {model_size} bytes")
+            st.write(f"DEBUG: Vectorizer size: {vect_size} bytes")
+            
+            if model_size == 0:
+                st.error("DEBUG: Model file is empty!")
+                st.stop()
+            if vect_size == 0:
+                st.error("DEBUG: Vectorizer file is empty!")
                 st.stop()
             
             st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
@@ -198,9 +225,6 @@ if not st.session_state.model_loaded:
         st.write("DEBUG: Full error traceback:")
         st.code(traceback.format_exc())
         st.stop()
-
-model = st.session_state.model
-vectorizer = st.session_state.vectorizer
 
 # -------------------------------
 # HOME PAGE / LANDING
@@ -453,6 +477,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
