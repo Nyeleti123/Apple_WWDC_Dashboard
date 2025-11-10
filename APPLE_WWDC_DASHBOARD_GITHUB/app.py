@@ -95,6 +95,7 @@ for key in ["dashboard_entered", "model_loaded", "model", "vectorizer", "lottie_
             st.session_state[key] = {}
         else:
             st.session_state[key] = None
+            
 # -------------------------------
 # HELPER FUNCTIONS
 # -------------------------------
@@ -111,7 +112,16 @@ def load_model_vectorizer():
     
     return model, vectorizer
 
-# REMOVE the old transform_text function and REPLACE with:
+# ADD THIS FUNCTION BACK - IT WAS MISSING!
+def load_lottie(file_path):
+    if not file_path.exists():
+        raise FileNotFoundError(f"Critical Lottie file missing: {file_path}")
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+def show_loading_animation(animation_json, height=150):
+    st_lottie(animation_json, speed=1, loop=True, quality="low", height=height)
+
 def get_model():
     if "model" not in st.session_state:
         st.session_state.model = joblib.load(MODEL_PATH)
@@ -144,7 +154,7 @@ def compute_lda(texts, n_topics=3, n_words=10):
         topics.append(f"Topic {i+1}: {', '.join(top_words)}")
         topic_distributions.append(topic / topic.sum())
     return topics, topic_distributions
-
+    
 # -------------------------------
 # PRELOAD LOTTIE ANIMATIONS (CRITICAL)
 # -------------------------------
@@ -438,6 +448,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
