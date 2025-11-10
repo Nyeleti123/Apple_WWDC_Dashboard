@@ -30,7 +30,7 @@ st.set_page_config(
 # -------------------------------
 # RELATIVE PATHS
 # -------------------------------
-BASE_PATH = Path(__file__).parent / "APPLE_WWDC_DASHBOARD_GITHUB"  # relative to app.py
+BASE_PATH = Path(__file__).parent  # relative to app.py
 ASSETS_PATH = BASE_PATH / "assets"
 CLIPART_PATH = BASE_PATH / "clipart"
 MODEL_PACKAGE_PATH = BASE_PATH / "Model Package"
@@ -389,6 +389,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
