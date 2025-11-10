@@ -37,18 +37,6 @@ MODEL_PACKAGE_PATH = BASE_PATH / "Model Package"
 MODEL_PATH = MODEL_PACKAGE_PATH / "chunked_svm_balanced_model.pkl"
 VECT_PATH = MODEL_PACKAGE_PATH / "chunked_tfidf_vectorizer.pkl"
 
-# DEBUG: Check if files exist
-st.write(f"DEBUG: BASE_PATH: {BASE_PATH}")
-st.write(f"DEBUG: MODEL_PATH exists: {MODEL_PATH.exists()}")
-st.write(f"DEBUG: VECT_PATH exists: {VECT_PATH.exists()}")
-st.write(f"DEBUG: ASSETS_PATH exists: {ASSETS_PATH.exists()}")
-
-# Show what's in Model Package directory
-if MODEL_PACKAGE_PATH.exists():
-    st.write(f"DEBUG: Files in Model Package: {list(MODEL_PACKAGE_PATH.glob('*'))}")
-else:
-    st.error(f"DEBUG: Model Package directory doesn't exist at: {MODEL_PACKAGE_PATH}")
-
 # -------------------------------
 # GOOGLE DRIVE FILES
 # -------------------------------
@@ -58,16 +46,13 @@ os.makedirs(MODEL_PACKAGE_PATH, exist_ok=True)
 
 if not VECT_PATH.exists():
     url = f"https://drive.google.com/uc?id={VECTOR_FILE_ID}"
-    st.info("Downloading large vectorizer from Google Drive (370MB)... This may take a minute.")
+    st.info("Downloading vectorizer from Google Drive... This may take a moment.")
     try:
         gdown.download(url, str(VECT_PATH), quiet=False)
-        st.success("Vectorizer download completed!")
     except Exception as e:
         st.error(f"Failed to download vectorizer: {e}")
         st.stop()
-else:
-    st.write("DEBUG: Vectorizer already exists, skipping download")
-    
+
 # -------------------------------
 # CSS STYLING
 # -------------------------------
@@ -99,20 +84,8 @@ for key in ["dashboard_entered", "model_loaded", "model", "vectorizer", "lottie_
 # -------------------------------
 # HELPER FUNCTIONS
 # -------------------------------
-import gc  # ADD THIS IMPORT
+import gc
 
-@st.cache_resource
-def load_model_vectorizer():
-    # Force garbage collection before loading
-    gc.collect()
-    
-    # Load with memory mapping to reduce RAM footprint
-    model = joblib.load(MODEL_PATH)
-    vectorizer = joblib.load(VECT_PATH, mmap_mode='r')  # This uses disk instead of RAM
-    
-    return model, vectorizer
-
-# ADD THIS FUNCTION BACK - IT WAS MISSING!
 def load_lottie(file_path):
     if not file_path.exists():
         raise FileNotFoundError(f"Critical Lottie file missing: {file_path}")
@@ -129,11 +102,8 @@ def get_model():
 
 def get_vectorizer():
     if "vectorizer" not in st.session_state:
-        # Clear memory before loading
         gc.collect()
-        
-        # Load only when absolutely needed
-        with st.spinner("Loading vectorizer (this may take a moment)..."):
+        with st.spinner("Loading vectorizer..."):
             st.session_state.vectorizer = joblib.load(VECT_PATH, mmap_mode='r')
     return st.session_state.vectorizer
 
@@ -156,29 +126,13 @@ def compute_lda(texts, n_topics=3, n_words=10):
     return topics, topic_distributions
     
 # -------------------------------
-# PRELOAD LOTTIE ANIMATIONS (CRITICAL)
+# PRELOAD LOTTIE ANIMATIONS
 # -------------------------------
 if not st.session_state.lottie_assets:
     st.session_state.lottie_assets["home"] = load_lottie(ASSETS_PATH / "home_page.json")
     st.session_state.lottie_assets["loading"] = load_lottie(ASSETS_PATH / "loading.json")
     st.session_state.lottie_assets["team"] = load_lottie(ASSETS_PATH / "teamwork.json")
     st.session_state.lottie_assets["under_buttons"] = load_lottie(ASSETS_PATH / "under_buttons.json")
-
-# -------------------------------
-# LOAD MODEL IF NOT ALREADY LOADED - MEMORY OPTIMIZED
-# -------------------------------
-# DON'T load anything here anymore - we'll load lazily when needed
-
-# REMOVE all this code:
-# if not st.session_state.model_loaded:
-#     with st.spinner("Loading model and vectorizer..."):
-#         st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
-#     st.session_state.model_loaded = True
-
-# model = st.session_state.model
-# vectorizer = st.session_state.vectorizer
-
-# INSTEAD, we'll load models only when needed on specific pages
 
 # -------------------------------
 # HOME PAGE / LANDING
@@ -198,16 +152,6 @@ if not st.session_state.dashboard_entered:
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg", width=70)
 st.sidebar.title("Ctrl Alt Elite Dashboard")
 st.sidebar.markdown("#### Apple WWDC Sentiment Analysis Project")
-
-# ADD MEMORY MONITORING
-try:
-    import psutil
-    process = psutil.Process()
-    memory_usage = process.memory_info().rss / 1024 / 1024
-    st.sidebar.write(f"Memory: {memory_usage:.1f}MB / 1024MB")
-except:
-    pass
-
 st.sidebar.markdown("---")
 
 page = st.sidebar.radio(
@@ -232,7 +176,7 @@ if page == "Project Overview":
     st.markdown("### A Data Science Journey by Ctrl Alt Elite")
     st.markdown("""
     #### Project Goal
-    Analyze public sentiment around Apple’s Worldwide Developers Conference (WWDC) and product announcements using NLP and Machine Learning.
+    Analyze public sentiment around Apple's Worldwide Developers Conference (WWDC) and product announcements using NLP and Machine Learning.
     
     #### Approach
     - Data collected from online platforms discussing WWDC.
@@ -245,20 +189,20 @@ if page == "Project Overview":
     """)
     col1, col2 = st.columns(2)
     with col1:
-        st.image(ASSETS_PATH / "Overall_Model_Accuracy.png", caption="Overall Model Accuracy", use_container_width=True)
+        st.image(ASSETS_PATH / "Overall_Model_Accuracy.png", caption="Overall Model Accuracy", width='stretch')
     with col2:
-        st.image(ASSETS_PATH / "Model_Performance_Bar.png", caption="Model Performance (F1 Scores)", use_container_width=True)
+        st.image(ASSETS_PATH / "Model_Performance_Bar.png", caption="Model Performance (F1 Scores)", width='stretch')
 
 elif page == "Visualizations":
     st.markdown('<div class="highlight-heading"><h1>Visualizations</h1></div>', unsafe_allow_html=True)
     st.markdown("### Key Insights from the Model & Data")
     col1, col2 = st.columns(2)
     with col1:
-        st.image(ASSETS_PATH / "Sentiment_Distribution_Bar.png", caption="Sentiment Distribution Across Tweets", use_container_width=True)
-        st.image(ASSETS_PATH / "Senitment_Prop_Pie.png", caption="Sentiment Proportion Pie Chart", use_container_width=True)
-        st.image(ASSETS_PATH / "Confusion_Matrix.png", caption="Confusion Matrix", use_container_width=True)
+        st.image(ASSETS_PATH / "Sentiment_Distribution_Bar.png", caption="Sentiment Distribution Across Tweets", width='stretch')
+        st.image(ASSETS_PATH / "Senitment_Prop_Pie.png", caption="Sentiment Proportion Pie Chart", width='stretch')
+        st.image(ASSETS_PATH / "Confusion_Matrix.png", caption="Confusion Matrix", width='stretch')
     with col2:
-        st.image(ASSETS_PATH / "Actual_Vs_Predicted_Bar.png", caption="Actual vs Predicted Sentiments", use_container_width=True)
+        st.image(ASSETS_PATH / "Actual_Vs_Predicted_Bar.png", caption="Actual vs Predicted Sentiments", width='stretch')
     st.markdown("""
     #### Interpretation
     - Bar chart: Positive sentiments dominate discussions.
@@ -313,9 +257,6 @@ elif page == "The Team":
     st.markdown("---")
     st.markdown("We are Ctrl Alt Elite – Combining creativity, logic, and teamwork to make data beautiful.")
 
-# -------------------------------
-# MAKE PREDICTIONS PAGE
-# -------------------------------
 elif page == "Make Predictions":
     st.markdown('<div class="highlight-heading"><h1>Make Predictions</h1></div>', unsafe_allow_html=True)
     st.markdown("Upload a CSV and select a text column to predict sentiments.")
@@ -325,7 +266,6 @@ elif page == "Make Predictions":
         text_columns = df_pred.select_dtypes(include=['object']).columns.tolist()
         selected_col = st.selectbox("Select text column for prediction", text_columns, key="predict_column_select")
         if st.button("Predict Sentiments", key="predict_button"):
-            # LAZY LOAD models only when needed
             model = get_model()
             vectorizer = get_vectorizer()
             
@@ -343,9 +283,6 @@ elif page == "Make Predictions":
                 key="predict_download"
             )
 
-# -------------------------------
-# MAKE Visualize PAGE
-# -------------------------------
 elif page == "Visualize Predictions":
     st.markdown('<div class="highlight-heading"><h1>Predictions Visualizations</h1></div>', unsafe_allow_html=True)
     st.markdown("Upload a CSV with `predicted_sentiment` column to explore insights interactively.")
@@ -428,9 +365,6 @@ elif page == "Visualize Predictions":
                     ax.legend()
                     st.pyplot(fig)
 
-# -------------------------------
-# REFERENCES PAGE
-# -------------------------------
 elif page == "References":
     st.markdown('<div class="highlight-heading"><h1>References</h1></div>', unsafe_allow_html=True)
     st.markdown("""
@@ -446,13 +380,3 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
