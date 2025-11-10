@@ -319,12 +319,12 @@ elif page == "The Team":
 elif page == "Make Predictions":
     st.markdown('<div class="highlight-heading"><h1>Make Predictions</h1></div>', unsafe_allow_html=True)
     st.markdown("Upload a CSV and select a text column to predict sentiments.")
-    uploaded_pred = st.file_uploader("Upload CSV for Predictions", type=["csv"])
+    uploaded_pred = st.file_uploader("Upload CSV for Predictions", type=["csv"], key="predict_uploader")
     if uploaded_pred:
         df_pred = pd.read_csv(uploaded_pred)
         text_columns = df_pred.select_dtypes(include=['object']).columns.tolist()
-        selected_col = st.selectbox("Select text column for prediction", text_columns)
-        if st.button("Predict Sentiments"):
+        selected_col = st.selectbox("Select text column for prediction", text_columns, key="predict_column_select")
+        if st.button("Predict Sentiments", key="predict_button"):
             # LAZY LOAD models only when needed
             model = get_model()
             vectorizer = get_vectorizer()
@@ -339,29 +339,28 @@ elif page == "Make Predictions":
                 "Download CSV with Predictions",
                 data=csv,
                 file_name="predicted_sentiments.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="predict_download"
             )
 
+# -------------------------------
+# MAKE Visualize PAGE
+# -------------------------------
 elif page == "Visualize Predictions":
     st.markdown('<div class="highlight-heading"><h1>Predictions Visualizations</h1></div>', unsafe_allow_html=True)
     st.markdown("Upload a CSV with `predicted_sentiment` column to explore insights interactively.")
-    uploaded_vis = st.file_uploader("Upload CSV for Visualization", type=["csv"], key="vis_upload")
+    uploaded_vis = st.file_uploader("Upload CSV for Visualization", type=["csv"], key="visualize_uploader")
     if uploaded_vis:
         df_vis = pd.read_csv(uploaded_vis)
         if "predicted_sentiment" not in df_vis.columns:
             st.error("CSV must contain a 'predicted_sentiment' column.")
         else:
             st.success("CSV loaded successfully!")
-            # NOTE: We DON'T load model/vectorizer here since we're just visualizing existing predictions
             text_columns = df_vis.select_dtypes(include=['object']).columns.tolist()
             text_columns = [c for c in text_columns if c != "predicted_sentiment"]
             if text_columns:
-                text_col = st.selectbox("Select text column for Topic Modeling", text_columns, key="topic_modeling_select")
+                text_col = st.selectbox("Select text column for Topic Modeling", text_columns, key="visualize_topic_select")
             else:
-                st.warning("No text column available for topic modeling.")
-                text_col = None
-            if text_columns:
-                text_col = st.selectbox("Select text column for Topic Modeling", text_columns, key="topic_modeling_select")
                 st.warning("No text column available for topic modeling.")
                 text_col = None
             st.subheader("Summary Statistics")
@@ -447,6 +446,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
