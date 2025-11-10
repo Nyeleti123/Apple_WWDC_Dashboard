@@ -95,53 +95,37 @@ for key in ["dashboard_entered", "model_loaded", "model", "vectorizer", "lottie_
             st.session_state[key] = {}
         else:
             st.session_state[key] = None
-
 # -------------------------------
 # HELPER FUNCTIONS
 # -------------------------------
+import gc  # ADD THIS IMPORT
+
 @st.cache_resource
 def load_model_vectorizer():
-    try:
-        st.write("DEBUG: Inside load_model_vectorizer")
-        st.write(f"DEBUG: Loading model from: {MODEL_PATH}")
+    # Force garbage collection before loading
+    gc.collect()
+    
+    # Load with memory mapping to reduce RAM footprint
+    model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECT_PATH, mmap_mode='r')  # This uses disk instead of RAM
+    
+    return model, vectorizer
+
+# REMOVE the old transform_text function and REPLACE with:
+def get_model():
+    if "model" not in st.session_state:
+        st.session_state.model = joblib.load(MODEL_PATH)
+    return st.session_state.model
+
+def get_vectorizer():
+    if "vectorizer" not in st.session_state:
+        # Clear memory before loading
+        gc.collect()
         
-        # Check file sizes
-        if MODEL_PATH.exists():
-            st.write(f"DEBUG: Model file size: {MODEL_PATH.stat().st_size} bytes")
-        if VECT_PATH.exists():
-            st.write(f"DEBUG: Vectorizer file size: {VECT_PATH.stat().st_size} bytes")
-        
-        # Try loading with joblib first
-        try:
-            model = joblib.load(MODEL_PATH)
-            st.write("DEBUG: Model loaded successfully via joblib")
-        except Exception as e:
-            st.error(f"DEBUG: Joblib failed for model: {e}")
-            # Try pickle as backup
-            import pickle
-            with open(MODEL_PATH, 'rb') as f:
-                model = pickle.load(f)
-            st.write("DEBUG: Model loaded successfully via pickle")
-        
-        # Load vectorizer
-        try:
-            vectorizer = joblib.load(VECT_PATH)
-            st.write("DEBUG: Vectorizer loaded successfully via joblib")
-        except Exception as e:
-            st.error(f"DEBUG: Joblib failed for vectorizer: {e}")
-            # Try pickle as backup
-            import pickle
-            with open(VECT_PATH, 'rb') as f:
-                vectorizer = pickle.load(f)
-            st.write("DEBUG: Vectorizer loaded successfully via pickle")
-        
-        return model, vectorizer
-        
-    except Exception as e:
-        st.error(f"DEBUG: All loading methods failed: {e}")
-        import traceback
-        st.write(f"DEBUG: Full traceback: {traceback.format_exc()}")
-        raise
+        # Load only when absolutely needed
+        with st.spinner("Loading vectorizer (this may take a moment)..."):
+            st.session_state.vectorizer = joblib.load(VECT_PATH, mmap_mode='r')
+    return st.session_state.vectorizer
 
 @st.cache_data
 def transform_text(vectorizer, texts):
@@ -161,15 +145,6 @@ def compute_lda(texts, n_topics=3, n_words=10):
         topic_distributions.append(topic / topic.sum())
     return topics, topic_distributions
 
-def load_lottie(file_path):
-    if not file_path.exists():
-        raise FileNotFoundError(f"Critical Lottie file missing: {file_path}")
-    with open(file_path, "r") as f:
-        return json.load(f)
-
-def show_loading_animation(animation_json, height=150):
-    st_lottie(animation_json, speed=1, loop=True, quality="low", height=height)
-
 # -------------------------------
 # PRELOAD LOTTIE ANIMATIONS (CRITICAL)
 # -------------------------------
@@ -180,51 +155,20 @@ if not st.session_state.lottie_assets:
     st.session_state.lottie_assets["under_buttons"] = load_lottie(ASSETS_PATH / "under_buttons.json")
 
 # -------------------------------
-# LOAD MODEL IF NOT ALREADY LOADED - WITH DEBUG
+# LOAD MODEL IF NOT ALREADY LOADED - MEMORY OPTIMIZED
 # -------------------------------
-if not st.session_state.model_loaded:
-    try:
-        # Wait for vectorizer download to complete
-        if not VECT_PATH.exists():
-            with st.spinner("Waiting for vectorizer download to complete..."):
-                while not VECT_PATH.exists():
-                    time.sleep(1)  # Wait 1 second and check again
-                st.write("DEBUG: Vectorizer download completed!")
+# DON'T load anything here anymore - we'll load lazily when needed
 
-        with st.spinner("Loading model and vectorizer..."):
-            st.write("DEBUG: Starting model loading process...")
-            
-            # Double check files exist
-            if not MODEL_PATH.exists():
-                st.error(f"DEBUG: Model file missing at: {MODEL_PATH}")
-                st.stop()
-            if not VECT_PATH.exists():
-                st.error(f"DEBUG: Vectorizer file missing at: {VECT_PATH}")
-                st.stop()
-            
-            # Verify file sizes are reasonable
-            model_size = MODEL_PATH.stat().st_size
-            vect_size = VECT_PATH.stat().st_size
-            st.write(f"DEBUG: Model size: {model_size} bytes")
-            st.write(f"DEBUG: Vectorizer size: {vect_size} bytes")
-            
-            if model_size == 0:
-                st.error("DEBUG: Model file is empty!")
-                st.stop()
-            if vect_size == 0:
-                st.error("DEBUG: Vectorizer file is empty!")
-                st.stop()
-            
-            st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
-            st.session_state.model_loaded = True
-            st.write("DEBUG: Model and vectorizer successfully loaded into session state!")
-            
-    except Exception as e:
-        st.error(f"DEBUG: Failed to load model: {str(e)}")
-        import traceback
-        st.write("DEBUG: Full error traceback:")
-        st.code(traceback.format_exc())
-        st.stop()
+# REMOVE all this code:
+# if not st.session_state.model_loaded:
+#     with st.spinner("Loading model and vectorizer..."):
+#         st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
+#     st.session_state.model_loaded = True
+
+# model = st.session_state.model
+# vectorizer = st.session_state.vectorizer
+
+# INSTEAD, we'll load models only when needed on specific pages
 
 # -------------------------------
 # HOME PAGE / LANDING
@@ -244,6 +188,16 @@ if not st.session_state.dashboard_entered:
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg", width=70)
 st.sidebar.title("Ctrl Alt Elite Dashboard")
 st.sidebar.markdown("#### Apple WWDC Sentiment Analysis Project")
+
+# ADD MEMORY MONITORING
+try:
+    import psutil
+    process = psutil.Process()
+    memory_usage = process.memory_info().rss / 1024 / 1024
+    st.sidebar.write(f"Memory: {memory_usage:.1f}MB / 1024MB")
+except:
+    pass
+
 st.sidebar.markdown("---")
 
 page = st.sidebar.radio(
@@ -361,6 +315,10 @@ elif page == "Make Predictions":
         text_columns = df_pred.select_dtypes(include=['object']).columns.tolist()
         selected_col = st.selectbox("Select text column for prediction", text_columns)
         if st.button("Predict Sentiments"):
+            # LAZY LOAD models only when needed
+            model = get_model()
+            vectorizer = get_vectorizer()
+            
             with st.spinner("Predicting sentiments..."):
                 X = transform_text(vectorizer, df_pred[selected_col].fillna(""))
                 df_pred["predicted_sentiment"] = model.predict(X)
@@ -374,9 +332,6 @@ elif page == "Make Predictions":
                 mime="text/csv"
             )
 
-# -------------------------------
-# VISUALIZE PREDICTIONS PAGE
-# -------------------------------
 elif page == "Visualize Predictions":
     st.markdown('<div class="highlight-heading"><h1>Predictions Visualizations</h1></div>', unsafe_allow_html=True)
     st.markdown("Upload a CSV with `predicted_sentiment` column to explore insights interactively.")
@@ -387,8 +342,14 @@ elif page == "Visualize Predictions":
             st.error("CSV must contain a 'predicted_sentiment' column.")
         else:
             st.success("CSV loaded successfully!")
+            # NOTE: We DON'T load model/vectorizer here since we're just visualizing existing predictions
             text_columns = df_vis.select_dtypes(include=['object']).columns.tolist()
             text_columns = [c for c in text_columns if c != "predicted_sentiment"]
+            if text_columns:
+                text_col = st.selectbox("Select text column for Topic Modeling", text_columns)
+            else:
+                st.warning("No text column available for topic modeling.")
+                text_col = None
             if text_columns:
                 text_col = st.selectbox("Select text column for Topic Modeling", text_columns)
             else:
@@ -477,6 +438,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
