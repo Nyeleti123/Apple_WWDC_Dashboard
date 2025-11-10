@@ -36,7 +36,7 @@ VECT_PATH = MODEL_PACKAGE_PATH / "chunked_tfidf_vectorizer.pkl"
 # -------------------------------
 # GOOGLE DRIVE FILES
 # -------------------------------
-VECTOR_FILE_ID = "1muqAEGXhaM6qnJrIKRnnMrSl_hQfoi6A"
+VECTOR_FILE_ID = "1QClOOxVRd7E89wrjWXMjGM06OdwgR7uK"
 
 os.makedirs(MODEL_PACKAGE_PATH, exist_ok=True)
 
@@ -379,3 +379,4 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
