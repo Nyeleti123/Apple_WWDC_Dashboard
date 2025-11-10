@@ -30,12 +30,18 @@ st.set_page_config(
 # -------------------------------
 # RELATIVE PATHS
 # -------------------------------
-BASE_PATH = Path(__file__).parent  # relative to app.py
+BASE_PATH = Path(__file__).parent / "APPLE_WWDC_DASHBOARD_GITHUB"  # relative to app.py
 ASSETS_PATH = BASE_PATH / "assets"
 CLIPART_PATH = BASE_PATH / "clipart"
 MODEL_PACKAGE_PATH = BASE_PATH / "Model Package"
 MODEL_PATH = MODEL_PACKAGE_PATH / "chunked_svm_balanced_model.pkl"
 VECT_PATH = MODEL_PACKAGE_PATH / "chunked_tfidf_vectorizer.pkl"
+
+# After setting up paths, add:
+st.write(f"BASE_PATH: {BASE_PATH}")
+st.write(f"MODEL_PATH exists: {MODEL_PATH.exists()}")
+st.write(f"VECT_PATH exists: {VECT_PATH.exists()}")
+st.write(f"ASSETS_PATH exists: {ASSETS_PATH.exists()}")
 
 # -------------------------------
 # GOOGLE DRIVE FILES
@@ -383,5 +389,6 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
