@@ -1,27 +1,28 @@
-# Core packages
+# Streamlit dashboard
 streamlit==1.51.0
 streamlit-lottie==0.0.5
+
+# Data processing and visualization
 pandas==2.3.3
-numpy==1.26.5
-scipy==1.11.3
+numpy==2.3.4
 matplotlib==3.10.7
 altair==5.5.0
 
-# Machine learning / NLP
+# Machine learning & NLP
 scikit-learn==1.3.2
 joblib==1.5.2
 nltk==3.9.1
 textblob==0.17.1
 
 # Utilities
-gdown==5.2.0
 beautifulsoup4==4.14.2
+gdown==5.2.0
 requests==2.32.5
 tqdm==4.67.1
 jsonschema==4.25.1
 jinja2==3.1.6
 
-# Other
+# Image and type support
 pillow==12.0.0
 typing-extensions==4.15.0
 tzdata==2025.2
