@@ -37,11 +37,17 @@ MODEL_PACKAGE_PATH = BASE_PATH / "Model Package"
 MODEL_PATH = MODEL_PACKAGE_PATH / "chunked_svm_balanced_model.pkl"
 VECT_PATH = MODEL_PACKAGE_PATH / "chunked_tfidf_vectorizer.pkl"
 
-# After setting up paths, add:
-st.write(f"BASE_PATH: {BASE_PATH}")
-st.write(f"MODEL_PATH exists: {MODEL_PATH.exists()}")
-st.write(f"VECT_PATH exists: {VECT_PATH.exists()}")
-st.write(f"ASSETS_PATH exists: {ASSETS_PATH.exists()}")
+# DEBUG: Check if files exist
+st.write(f"DEBUG: BASE_PATH: {BASE_PATH}")
+st.write(f"DEBUG: MODEL_PATH exists: {MODEL_PATH.exists()}")
+st.write(f"DEBUG: VECT_PATH exists: {VECT_PATH.exists()}")
+st.write(f"DEBUG: ASSETS_PATH exists: {ASSETS_PATH.exists()}")
+
+# Show what's in Model Package directory
+if MODEL_PACKAGE_PATH.exists():
+    st.write(f"DEBUG: Files in Model Package: {list(MODEL_PACKAGE_PATH.glob('*'))}")
+else:
+    st.error(f"DEBUG: Model Package directory doesn't exist at: {MODEL_PACKAGE_PATH}")
 
 # -------------------------------
 # GOOGLE DRIVE FILES
@@ -88,9 +94,47 @@ for key in ["dashboard_entered", "model_loaded", "model", "vectorizer", "lottie_
 # -------------------------------
 @st.cache_resource
 def load_model_vectorizer():
-    model = joblib.load(MODEL_PATH)
-    vectorizer = joblib.load(VECT_PATH)
-    return model, vectorizer
+    try:
+        st.write("DEBUG: Inside load_model_vectorizer")
+        st.write(f"DEBUG: Loading model from: {MODEL_PATH}")
+        
+        # Check file sizes
+        if MODEL_PATH.exists():
+            st.write(f"DEBUG: Model file size: {MODEL_PATH.stat().st_size} bytes")
+        if VECT_PATH.exists():
+            st.write(f"DEBUG: Vectorizer file size: {VECT_PATH.stat().st_size} bytes")
+        
+        # Try loading with joblib first
+        try:
+            model = joblib.load(MODEL_PATH)
+            st.write("DEBUG: Model loaded successfully via joblib")
+        except Exception as e:
+            st.error(f"DEBUG: Joblib failed for model: {e}")
+            # Try pickle as backup
+            import pickle
+            with open(MODEL_PATH, 'rb') as f:
+                model = pickle.load(f)
+            st.write("DEBUG: Model loaded successfully via pickle")
+        
+        # Load vectorizer
+        try:
+            vectorizer = joblib.load(VECT_PATH)
+            st.write("DEBUG: Vectorizer loaded successfully via joblib")
+        except Exception as e:
+            st.error(f"DEBUG: Joblib failed for vectorizer: {e}")
+            # Try pickle as backup
+            import pickle
+            with open(VECT_PATH, 'rb') as f:
+                vectorizer = pickle.load(f)
+            st.write("DEBUG: Vectorizer loaded successfully via pickle")
+        
+        return model, vectorizer
+        
+    except Exception as e:
+        st.error(f"DEBUG: All loading methods failed: {e}")
+        import traceback
+        st.write(f"DEBUG: Full traceback: {traceback.format_exc()}")
+        raise
 
 @st.cache_data
 def transform_text(vectorizer, texts):
@@ -129,12 +173,31 @@ if not st.session_state.lottie_assets:
     st.session_state.lottie_assets["under_buttons"] = load_lottie(ASSETS_PATH / "under_buttons.json")
 
 # -------------------------------
-# LOAD MODEL IF NOT ALREADY LOADED
+# LOAD MODEL IF NOT ALREADY LOADED - WITH DEBUG
 # -------------------------------
 if not st.session_state.model_loaded:
-    with st.spinner("Loading model and vectorizer..."):
-        st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
-    st.session_state.model_loaded = True
+    try:
+        with st.spinner("Loading model and vectorizer..."):
+            st.write("DEBUG: Starting model loading process...")
+            
+            # Double check files exist
+            if not MODEL_PATH.exists():
+                st.error(f"DEBUG: Model file missing at: {MODEL_PATH}")
+                st.stop()
+            if not VECT_PATH.exists():
+                st.error(f"DEBUG: Vectorizer file missing at: {VECT_PATH}")
+                st.stop()
+            
+            st.session_state.model, st.session_state.vectorizer = load_model_vectorizer()
+            st.session_state.model_loaded = True
+            st.write("DEBUG: Model and vectorizer successfully loaded into session state!")
+            
+    except Exception as e:
+        st.error(f"DEBUG: Failed to load model: {str(e)}")
+        import traceback
+        st.write("DEBUG: Full error traceback:")
+        st.code(traceback.format_exc())
+        st.stop()
 
 model = st.session_state.model
 vectorizer = st.session_state.vectorizer
@@ -148,8 +211,9 @@ if not st.session_state.dashboard_entered:
     st.markdown("#### A Data Science Journey by Ctrl Alt Elite")
     if st.button("Enter Dashboard"):
         st.session_state.dashboard_entered = True
+        st.rerun()
     st.stop()
-
+    
 # -------------------------------
 # SIDEBAR & PAGES
 # -------------------------------
@@ -389,6 +453,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
