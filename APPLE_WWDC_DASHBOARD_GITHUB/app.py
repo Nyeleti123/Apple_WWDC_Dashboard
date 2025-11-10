@@ -356,13 +356,12 @@ elif page == "Visualize Predictions":
             text_columns = df_vis.select_dtypes(include=['object']).columns.tolist()
             text_columns = [c for c in text_columns if c != "predicted_sentiment"]
             if text_columns:
-                text_col = st.selectbox("Select text column for Topic Modeling", text_columns)
+                text_col = st.selectbox("Select text column for Topic Modeling", text_columns, key="topic_modeling_select")
             else:
                 st.warning("No text column available for topic modeling.")
                 text_col = None
             if text_columns:
-                text_col = st.selectbox("Select text column for Topic Modeling", text_columns)
-            else:
+                text_col = st.selectbox("Select text column for Topic Modeling", text_columns, key="topic_modeling_select")
                 st.warning("No text column available for topic modeling.")
                 text_col = None
             st.subheader("Summary Statistics")
@@ -448,6 +447,7 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
 
 
