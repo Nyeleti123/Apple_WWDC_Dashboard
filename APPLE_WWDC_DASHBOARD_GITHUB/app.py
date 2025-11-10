@@ -1,4 +1,8 @@
 import streamlit as st
+# Force clearing Streamlit's cache
+st.cache_data.clear()
+st.cache_resource.clear()
+
 from PIL import Image
 from pathlib import Path
 import pandas as pd
@@ -379,4 +383,5 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
 
