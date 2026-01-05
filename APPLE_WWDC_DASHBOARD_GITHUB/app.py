@@ -245,8 +245,8 @@ elif page == "The Team":
     show_loading_animation(st.session_state.lottie_assets["team"], height=250)
     st.markdown("We built the full sentiment analysis pipeline, model, and dashboard.")
     team = {
-        "Rendani": "Lead Data Analyst & Documentation",
-        "Nyeleti": "Model Training & Dashboard Designer",
+        "Nyeleti": "Lead Model Trainer/Tester & Dashboard Designer",
+        "Rendani": "Documenation & Data  Cleaning",
         "Kabelo": "Data Cleaning & Preprocessing",
         "Jeremy": "Research & Data Labeling",
         "Thapelo": "Data Visualization & Documentation",
@@ -380,3 +380,4 @@ elif page == "References":
 # FOOTER
 # -------------------------------
 st.markdown('<div class="footer">Ctrl Alt Elite – Apple WWDC Sentiment Analysis Dashboard | 2025</div>', unsafe_allow_html=True)
+
